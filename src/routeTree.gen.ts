@@ -10,33 +10,44 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicPaymentsSandboxWebhookRouteImport } from './routes/api/public/payments/sandbox-webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsSandboxWebhookRoute =
+  ApiPublicPaymentsSandboxWebhookRouteImport.update({
+    id: '/api/public/payments/sandbox-webhook',
+    path: '/api/public/payments/sandbox-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/public/payments/sandbox-webhook': typeof ApiPublicPaymentsSandboxWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/public/payments/sandbox-webhook': typeof ApiPublicPaymentsSandboxWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/public/payments/sandbox-webhook': typeof ApiPublicPaymentsSandboxWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/api/public/payments/sandbox-webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/api/public/payments/sandbox-webhook'
+  id: '__root__' | '/' | '/api/public/payments/sandbox-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiPublicPaymentsSandboxWebhookRoute: typeof ApiPublicPaymentsSandboxWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +59,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/sandbox-webhook': {
+      id: '/api/public/payments/sandbox-webhook'
+      path: '/api/public/payments/sandbox-webhook'
+      fullPath: '/api/public/payments/sandbox-webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsSandboxWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiPublicPaymentsSandboxWebhookRoute: ApiPublicPaymentsSandboxWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
