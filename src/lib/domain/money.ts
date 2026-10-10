@@ -42,7 +42,7 @@ export function splitByWeights(total: Paise, weights: number[]): Paise[] {
   if (sum <= 0) {
     const base = Math.floor(total / weights.length);
     const out = weights.map(() => base);
-    for (let i = 0; i < total - base * weights.length; i++) out[i] += 1;
+    for (let i = 0; i < total - base * weights.length; i++) out[i]! += 1;
     return out;
   }
   const raw = weights.map((w) => (total * w) / sum);
@@ -51,6 +51,6 @@ export function splitByWeights(total: Paise, weights: number[]): Paise[] {
   const order = raw
     .map((r, i) => ({ i, frac: r - Math.floor(r) }))
     .sort((a, b) => b.frac - a.frac || a.i - b.i);
-  for (let k = 0; rem > 0; k = (k + 1) % order.length, rem--) floors[order[k].i] += 1;
+  for (let k = 0; rem > 0; k = (k + 1) % order.length, rem--) floors[order[k]!.i]! += 1;
   return floors;
 }

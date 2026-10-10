@@ -46,7 +46,7 @@ export function routeMetrics(points: LatLng[], routing: RoutingProvider): LegMet
   let distanceM = 0;
   let durationS = 0;
   for (let i = 1; i < points.length; i++) {
-    const l = routing.leg(points[i - 1], points[i]);
+    const l = routing.leg(points[i - 1]!, points[i]!);
     distanceM += l.distanceM;
     durationS += l.durationS;
   }
