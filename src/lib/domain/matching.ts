@@ -71,7 +71,7 @@ function evaluateSequence(
   const pts: LatLng[] = [trip.driverLocation, ...stops.map((s) => s.point)];
   // cumulative distance at each point index
   const cum: number[] = [0];
-  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + routing.leg(pts[i - 1], pts[i]).distanceM);
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1]! + routing.leg(pts[i - 1]!, pts[i]!).distanceM);
   let load = riders.filter((r) => r.onboard).reduce((a, r) => a + r.count, 0);
   const pickedAt = new Map<string, number>();
   for (const r of riders) if (r.onboard) pickedAt.set(r.bookingId, 0);
@@ -90,7 +90,7 @@ function evaluateSequence(
         return;
       }
       load -= r.count;
-      const ride = cum[idx] - cum[p];
+      const ride = cum[idx]! - cum[p]!;
       const detourPct = r.soloDistanceM > 0 ? ((ride - r.soloDistanceM) * 100) / r.soloDistanceM : 0;
       detours.push({ bookingId: r.bookingId, detourPct: Math.round(detourPct * 10) / 10, rideDistanceM: ride });
       if (detourPct > r.maxDetourPct) reasons.add("DETOUR_LIMIT_EXCEEDED");

@@ -146,9 +146,10 @@ export async function createQuote(userId: string, input: QuoteInput) {
     if (!res.options.length) {
       return { ok: false as const, reason: "NO_FEASIBLE_SHARED_RIDE", rejections, fallbackPrivateFare: privateFare(cfg, metrics, input.vehicleType).total };
     }
-    sharedOption = res.options[0];
-    sharedTripId = sharedOption.tripId;
-    const mine = sharedOption.economics.allocations.find((a) => a.bookingId === "NEW")!;
+    const opt0 = res.options[0]!;
+    sharedOption = opt0;
+    sharedTripId = opt0.tripId;
+    const mine = opt0.economics.allocations.find((a) => a.bookingId === "NEW")!;
     amounts.currentGuaranteedPayable = mine.amount;
     amounts.guaranteedDiscount = ref.total - mine.amount;
     amounts.potentialAdditionalDiscount = 0;
@@ -409,10 +410,10 @@ export async function advanceBooking(actorUserId: string, bookingId: string, to:
   if (tb.assignment_state !== "confirmed") throw new AppError("NOT_CONFIRMED", "Assignment not confirmed");
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = {};
-  if (to === "DRIVER_ARRIVED") patch.arrived_at = now;
+  if (to === "DRIVER_ARRIVED") patch["arrived_at"] = now;
   if (to === "COMPLETED") {
     const { data: b } = await db().from("bookings").select("current_guaranteed_payable").eq("id", bookingId).single();
-    patch.final_fare = Number(b.current_guaranteed_payable);
+    patch["final_fare"] = Number(b.current_guaranteed_payable);
     // TODO(GPS adapter): verify driver position near drop-off once a trusted location provider is configured.
   }
   const nb = await transitionBooking({ bookingId, to, actor, actorId: actorUserId, reason: demoAct ? "DEMO driver step (simulated)" : "driver update", patch });

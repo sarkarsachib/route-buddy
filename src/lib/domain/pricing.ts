@@ -215,26 +215,26 @@ export function allocateShared(
   const baseShare = Math.min(cfg.base_fare_paise, R);
   const baseParts = splitByWeights(baseShare, passengers.map(() => 1));
   const varParts = splitByWeights(R - baseShare, passengers.map((p) => Math.max(1, p.soloFare - cfg.base_fare_paise)));
-  const amt = passengers.map((_, i) => baseParts[i] + varParts[i]);
+  const amt = passengers.map((_, i) => baseParts[i]! + varParts[i]!);
   // water-fill excess over caps
   for (let iter = 0; iter < n + 1; iter++) {
     let excess = 0;
     const free: number[] = [];
     amt.forEach((a, i) => {
-      if (a > passengers[i].cap) {
-        excess += a - passengers[i].cap;
-        amt[i] = passengers[i].cap;
-      } else if (a < passengers[i].cap) free.push(i);
+      if (a > passengers[i]!.cap) {
+        excess += a - passengers[i]!.cap;
+        amt[i] = passengers[i]!.cap;
+      } else if (a < passengers[i]!.cap) free.push(i);
     });
     if (excess === 0) break;
     if (free.length === 0) break;
-    const add = splitByWeights(excess, free.map((i) => Math.max(1, passengers[i].soloFare - cfg.base_fare_paise)));
-    free.forEach((i, k) => (amt[i] += add[k]));
+    const add = splitByWeights(excess, free.map((i) => Math.max(1, passengers[i]!.soloFare - cfg.base_fare_paise)));
+    free.forEach((i, k) => (amt[i]! += add[k]!));
   }
   const total = amt.reduce((a, b) => a + b, 0);
   const reasons: ReasonCode[] = [];
   if (total < R) reasons.push("DRIVER_PAYOUT_FLOOR_UNMET");
-  if (amt.some((a, i) => a > passengers[i].cap)) reasons.push("FARE_CEILING_EXCEEDED");
+  if (amt.some((a, i) => a > passengers[i]!.cap)) reasons.push("FARE_CEILING_EXCEEDED");
   const payout = driverGrossPayout(cfg, total);
   if (payout < target && !reasons.includes("DRIVER_PAYOUT_FLOOR_UNMET")) reasons.push("DRIVER_PAYOUT_FLOOR_UNMET");
   if (payout - opCost <= 0) reasons.push("DRIVER_NET_NEGATIVE");
@@ -242,7 +242,7 @@ export function allocateShared(
     ...base,
     feasible: reasons.length === 0,
     reasons: reasons.length ? reasons : ["OK"],
-    allocations: passengers.map((p, i) => ({ bookingId: p.bookingId, amount: amt[i], soloFare: p.soloFare, cap: p.cap })),
+    allocations: passengers.map((p, i) => ({ bookingId: p.bookingId, amount: amt[i]!, soloFare: p.soloFare, cap: p.cap })),
     driverGrossPayout: payout,
     platformContribution: total - payout,
     driverEstimatedNet: payout - opCost,
