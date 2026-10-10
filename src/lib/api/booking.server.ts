@@ -625,3 +625,54 @@ export async function respondToOffer(userId: string, offerId: string, response: 
   if (!trip) throw new AppError("DRIVER_UNAVAILABLE", "Driver is no longer available; terms recorded, still searching.");
   return { ok: true, tripId: trip };
 }
+
+// ---------- Driver read model ----------
+export async function driverDashboardFor(driverId: string) {
+  const cfg = await loadPricing();
+  const { data: driver } = await db().from("driver_profiles").select("*").eq("id", driverId).single();
+  const { data: vehicle } = await db().from("vehicles").select("*").eq("driver_id", driverId).eq("is_active", true).maybeSingle();
+  const { data: trips } = await db().from("trips").select("*").eq("driver_id", driverId).in("state", ACTIVE_TRIP).limit(1);
+  const trip = trips?.[0] ?? null;
+  let assignments: unknown[] = [], stops: unknown[] = [];
+  if (trip) {
+    const { data: tbs } = await db().from("trip_bookings").select("*, bookings(id,state,pickup_label,dropoff_label,passenger_count,current_guaranteed_payable,payment_method,arrived_at,ride_mode)").eq("trip_id", trip.id).in("assignment_state", ["proposed", "confirmed", "completed"]);
+    const { data: evs } = await db().from("trip_events").select("booking_id,payload").eq("trip_id", trip.id).eq("event_type", "match_proposed");
+    assignments = (tbs ?? []).map((t: Booking) => {
+      const ev = (evs ?? []).filter((e: { booking_id: string }) => e.booking_id === t.booking_id).pop();
+      const econ = ev?.payload?.economics;
+      return { ...t, payoutPreview: econ ? { method: econ.method, driverGrossPayout: econ.driverGrossPayout, benchmarkDriverPayout: econ.benchmarkDriverPayout, targetDriverPayout: econ.targetDriverPayout, driverEstimatedNet: econ.driverEstimatedNet, driverOperatingCost: econ.driverOperatingCost, addedDistanceM: ev.payload.addedDistanceM } : null };
+    });
+    stops = (await db().from("trip_stops").select("*").eq("trip_id", trip.id).order("seq")).data ?? [];
+  }
+  const { data: offers } = await db().from("negotiation_offers").select("*, bookings(pickup_label,dropoff_label,private_reference_fare,passenger_count)").eq("driver_id", driverId).eq("status", "open");
+  const { data: ledger } = await db().from("driver_payout_ledger").select("*").eq("driver_id", driverId).order("created_at", { ascending: false }).limit(50);
+  return { driver, vehicle, trip, assignments, stops, offers: offers ?? [], ledger: ledger ?? [], commissionBps: cfg.platform_commission_bps, noshowGraceS: cfg.noshow_grace_s };
+}
+
+export async function myDriverId(userId: string) {
+  return (await driverByUser(userId)).id as string;
+}
+
+export async function setAvailability(userId: string, status: "online" | "offline", lat?: number, lng?: number) {
+  const d = await driverByUser(userId);
+  if (status === "online") {
+    if (d.verification_status !== "verified") throw new AppError("NOT_VERIFIED", "Your documents must be verified by Operations before you can go online.");
+    if (d.restricted_until && new Date(d.restricted_until) > new Date()) throw new AppError("RESTRICTED", `Temporarily restricted until ${new Date(d.restricted_until).toLocaleString()}`);
+  }
+  if (d.availability_status === "on_trip") throw new AppError("ON_TRIP", "Finish your current trip first.");
+  const patch: Record<string, unknown> = { availability_status: status };
+  if (lat != null && lng != null) Object.assign(patch, { current_lat: lat, current_lng: lng, location_updated_at: new Date().toISOString() });
+  await db().from("driver_profiles").update(patch).eq("id", d.id);
+  return { ok: true };
+}
+
+export async function listMyBookings(userId: string) {
+  const { data } = await db().from("bookings").select("*").eq("passenger_id", userId).order("created_at", { ascending: false }).limit(50);
+  return data ?? [];
+}
+
+export async function retrySearch(userId: string, bookingId: string) {
+  const { data: b } = await db().from("bookings").select("passenger_id,state").eq("id", bookingId).single();
+  if (b?.passenger_id !== userId) throw new AppError("NOT_FOUND");
+  return findAndPropose(bookingId);
+}
