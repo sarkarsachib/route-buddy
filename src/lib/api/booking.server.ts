@@ -18,6 +18,7 @@ import {
 import { cancellationOutcome, canMarkNoShow } from "@/lib/domain/cancellation";
 import type { ActorRole, BookingState } from "@/lib/domain/state-machine";
 import { applyBps } from "@/lib/domain/money";
+import { canRespond, offerBounds, validateOffer, type OfferParty } from "@/lib/domain/negotiation";
 
 const SHARED_MODES: RideMode[] = ["SHARE_AND_SAVE", "SHARED_NOW", "BUDGET"];
 const ACTIVE_TRIP = ["planned", "driver_en_route", "in_progress"];
@@ -283,12 +284,12 @@ async function proposeOnExisting(b: Booking, opt: MatchOption, version: number, 
   return true;
 }
 
-async function proposeNewTrip(b: Booking, cfg: PricingConfig, exclude: Set<string>): Promise<string | null> {
+async function proposeNewTrip(b: Booking, cfg: PricingConfig, exclude: Set<string>, onlyDriver?: string): Promise<string | null> {
   const isShared = SHARED_MODES.includes(b.ride_mode);
   const { data: drivers } = await db().from("driver_profiles").select("*").eq("availability_status", "online").eq("verification_status", "verified");
   const pickup = { lat: b.pickup_lat, lng: b.pickup_lng };
   const ranked = (drivers ?? [])
-    .filter((d: { id: string; restricted_until: string | null; current_lat: number | null }) => !exclude.has(d.id) && d.current_lat != null && !(d.restricted_until && new Date(d.restricted_until) > new Date()))
+    .filter((d: { id: string; restricted_until: string | null; current_lat: number | null }) => (!onlyDriver || d.id === onlyDriver) && !exclude.has(d.id) && d.current_lat != null && !(d.restricted_until && new Date(d.restricted_until) > new Date()))
     .map((d: { current_lat: number; current_lng: number }) => ({ d, dist: haversineM({ lat: d.current_lat, lng: d.current_lng }, pickup) }))
     .filter((x: { dist: number }) => x.dist <= cfg.max_pickup_radius_m * 3)
     .sort((a: { dist: number }, z: { dist: number }) => a.dist - z.dist);
@@ -561,4 +562,66 @@ export async function bookingDetailFor(userId: string, bookingId: string, staff:
     myStops = (st ?? []).map((s: { seq: number; stop_type: string; label: string; status: string; booking_id: string }) => ({ seq: s.seq, type: s.stop_type, status: s.status, mine: s.booking_id === bookingId, label: s.booking_id === bookingId ? s.label : "Shared stop" }));
   }
   return { booking: b, events, allocations: allocs, payments: pays, refunds, offers, quote: q, driver, coPassengers, stops: myStops, assignment: tb ? { state: tb.assignment_state, tripId: tb.trip_id, expiresAt: tb.proposal_expires_at } : null };
+}
+
+// ---------- Negotiation (budget rides) ----------
+export async function passengerOffer(userId: string, bookingId: string, amountPaise: number) {
+  const cfg = await loadPricing();
+  const { data: b } = await db().from("bookings").select("*").eq("id", bookingId).single();
+  if (!b || b.passenger_id !== userId) throw new AppError("NOT_FOUND");
+  if (b.state !== "SEARCHING") throw new AppError("STATE_CONFLICT", "Offers can be made only while searching");
+  const bounds = offerBounds(cfg, Number(b.private_reference_fare), Number(b.current_guaranteed_payable));
+  const v = validateOffer(amountPaise, bounds);
+  if (!v.ok) throw new AppError(v.reason!, `Offer must be between ₹${(bounds.floor / 100).toFixed(0)} and ₹${(bounds.ceiling / 100).toFixed(0)}`);
+  const { data: drivers } = await db().from("driver_profiles").select("*").eq("availability_status", "online").eq("verification_status", "verified");
+  const near = (drivers ?? []).filter((d: { restricted_until: string | null; current_lat: number | null }) => d.current_lat != null && !(d.restricted_until && new Date(d.restricted_until) > new Date()))
+    .sort((a: { current_lat: number; current_lng: number }, z: { current_lat: number; current_lng: number }) => haversineM({ lat: a.current_lat, lng: a.current_lng }, { lat: b.pickup_lat, lng: b.pickup_lng }) - haversineM({ lat: z.current_lat, lng: z.current_lng }, { lat: b.pickup_lat, lng: b.pickup_lng }))[0];
+  if (!near) throw new AppError("NO_DRIVER_AVAILABLE", "No eligible driver online right now");
+  await db().from("negotiation_offers").update({ status: "expired" }).eq("booking_id", bookingId).eq("status", "open");
+  const { data: o } = await db().from("negotiation_offers").insert({ booking_id: bookingId, created_by: userId, party: "passenger", driver_id: near.id, amount_paise: amountPaise, expires_at: new Date(Date.now() + cfg.offer_ttl_s * 1000).toISOString() }).select("*").single();
+  return o;
+}
+
+export async function respondToOffer(userId: string, offerId: string, response: "accept" | "reject" | "counter", counterPaise?: number, demoAct = false) {
+  const cfg = await loadPricing();
+  const { data: o } = await db().from("negotiation_offers").select("*").eq("id", offerId).single();
+  if (!o) throw new AppError("NOT_FOUND");
+  const { data: b } = await db().from("bookings").select("*").eq("id", o.booking_id).single();
+  let responder: OfferParty;
+  if (b.passenger_id === userId && o.party === "driver") responder = "passenger";
+  else {
+    const { data: d } = await db().from("driver_profiles").select("id,user_id,is_demo").eq("id", o.driver_id).single();
+    const ok = demoAct ? d?.is_demo : d?.user_id === userId;
+    if (!ok) throw new AppError("FORBIDDEN");
+    responder = "driver";
+  }
+  const chk = canRespond(o.status, o.expires_at, responder, o.party);
+  if (!chk.ok) {
+    if (chk.reason === "OFFER_EXPIRED") await db().from("negotiation_offers").update({ status: "expired" }).eq("id", o.id);
+    throw new AppError(chk.reason!);
+  }
+  if (response === "reject") {
+    await db().from("negotiation_offers").update({ status: "rejected" }).eq("id", o.id);
+    return { ok: true };
+  }
+  if (response === "counter") {
+    if (responder !== "driver") throw new AppError("ONLY_DRIVER_COUNTERS");
+    const bounds = offerBounds(cfg, Number(b.private_reference_fare), Number(b.current_guaranteed_payable));
+    const v = validateOffer(counterPaise ?? -1, bounds);
+    if (!v.ok) throw new AppError(v.reason!, "Counteroffer must stay within the passenger's ceiling and the driver floor");
+    await db().from("negotiation_offers").update({ status: "countered" }).eq("id", o.id);
+    await db().from("negotiation_offers").insert({ booking_id: b.id, created_by: userId, party: "driver", driver_id: o.driver_id, amount_paise: counterPaise, parent_offer_id: o.id, expires_at: new Date(Date.now() + cfg.offer_ttl_s * 1000).toISOString() });
+    await notify(b.passenger_id, "Driver counteroffer", `A driver offered ₹${((counterPaise ?? 0) / 100).toFixed(0)}. Respond before it expires.`);
+    return { ok: true };
+  }
+  // accept → accepted terms persist; guarantee lowers to agreed amount (never rises)
+  const { data: won } = await db().from("negotiation_offers").update({ status: "accepted" }).eq("id", o.id).eq("status", "open").select("id").maybeSingle();
+  if (!won) throw new AppError("OFFER_NOT_OPEN");
+  const agreed = nextGuaranteed(Number(b.current_guaranteed_payable), Number(o.amount_paise));
+  await db().from("bookings").update({ current_guaranteed_payable: agreed }).eq("id", b.id);
+  await db().from("fare_allocations").insert({ booking_id: b.id, quoted_amount: Number(b.confirmed_fare_ceiling), guaranteed_amount: agreed, allocation_method: "negotiated", pricing_version: cfg.version, snapshot: { offerId: o.id } });
+  const fresh = (await db().from("bookings").select("*").eq("id", b.id).single()).data;
+  const trip = await proposeNewTrip(fresh, cfg, new Set(), o.driver_id);
+  if (!trip) throw new AppError("DRIVER_UNAVAILABLE", "Driver is no longer available; terms recorded, still searching.");
+  return { ok: true, tripId: trip };
 }
