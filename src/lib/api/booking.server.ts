@@ -30,8 +30,8 @@ export interface QuoteInput {
   mode: RideMode;
   passengerCount: number;
   vehicleType: VehicleType;
-  budgetPaise?: number;
-  departAt?: string;
+  budgetPaise?: number | undefined;
+  departAt?: string | undefined;
   maxDetourPct: number;
   category?: string | null;
 }
@@ -550,7 +550,8 @@ export async function bookingDetailFor(userId: string, bookingId: string, staff:
   const tb = await assignmentFor(bookingId, ["proposed", "confirmed", "completed"]);
   let driver: null | { name: string; vehicle: string; registration: string; rating: number | null; isDemo: boolean } = null;
   let coPassengers = 0;
-  let myStops: unknown[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let myStops: any[] = [];
   if (tb) {
     const { data: d } = await db().from("driver_profiles").select("display_name,rating_avg,is_demo").eq("id", tb.trips.driver_id).single();
     const { data: v } = await db().from("vehicles").select("vehicle_type,registration_ref").eq("id", tb.trips.vehicle_id).single();
@@ -633,7 +634,8 @@ export async function driverDashboardFor(driverId: string) {
   const { data: vehicle } = await db().from("vehicles").select("*").eq("driver_id", driverId).eq("is_active", true).maybeSingle();
   const { data: trips } = await db().from("trips").select("*").eq("driver_id", driverId).in("state", ACTIVE_TRIP).limit(1);
   const trip = trips?.[0] ?? null;
-  let assignments: unknown[] = [], stops: unknown[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let assignments: any[] = [], stops: any[] = [];
   if (trip) {
     const { data: tbs } = await db().from("trip_bookings").select("*, bookings(id,state,pickup_label,dropoff_label,passenger_count,current_guaranteed_payable,payment_method,arrived_at,ride_mode)").eq("trip_id", trip.id).in("assignment_state", ["proposed", "confirmed", "completed"]);
     const { data: evs } = await db().from("trip_events").select("booking_id,payload").eq("trip_id", trip.id).eq("event_type", "match_proposed");
