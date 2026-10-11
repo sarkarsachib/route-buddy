@@ -20,12 +20,12 @@ export const getMe = createServerFn({ method: "GET" }).middleware([requireSupaba
 export const createQuote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ pickup: pt, dropoff: pt, mode: z.enum(["PRIVATE", "SHARE_AND_SAVE", "SHARED_NOW", "BUDGET", "GROUP_PRIVATE"]), passengerCount: z.number().int().min(1).max(6), vehicleType: z.enum(["hatchback", "sedan", "suv"]), budgetPaise: z.number().int().positive().optional(), departAt: z.string().optional(), maxDetourPct: z.number().int().min(0).max(100), category: z.string().nullable().optional() }).parse(d))
-  .handler(({ data, context }) => wrap(() => svc.createQuote(context.userId, data)));
+  .handler(({ data, context }) => wrap(() => svc.createQuote(context.userId, data as svc.QuoteInput)));
 
 export const confirmBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ quoteId: z.string().uuid(), idempotencyKey: z.string().min(8).max(80), paymentMethod: z.enum(["cash", "digital"]), departAt: z.string().optional(), maxDetourPct: z.number().int().min(0).max(100), language: z.enum(["en", "bn", "hi"]).optional(), accessibility: z.record(z.unknown()).optional() }).parse(d))
-  .handler(({ data, context }) => wrap(() => svc.confirmBooking(context.userId, data)));
+  .handler(({ data, context }) => wrap(() => svc.confirmBooking(context.userId, data as Parameters<typeof svc.confirmBooking>[1])));
 
 export const listMyBookings = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(({ context }) => wrap(() => svc.listMyBookings(context.userId)));
 
@@ -60,7 +60,7 @@ export const respondOffer = createServerFn({ method: "POST" })
 export const reportIncident = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ bookingId: z.string().uuid().nullable().optional(), category: z.enum(["physical_safety", "harassment", "accident", "route_deviation", "vehicle_condition", "other"]), description: z.string().min(5).max(4000), role: z.enum(["passenger", "driver"]) }).parse(d))
-  .handler(({ data, context }) => wrap(() => ops.reportIncident(context.userId, data)));
+  .handler(({ data, context }) => wrap(() => ops.reportIncident(context.userId, data as Parameters<typeof ops.reportIncident>[1])));
 
 export const openSupportCase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -173,7 +173,7 @@ export async function incidents(actor: string) {
   return data ?? [];
 }
 
-export async function actOnIncident(actor: string, id: string, action: "triage" | "escalate" | "review" | "interim_restrict" | "resolve" | "appeal", input: { severity?: string; notes: string; restrictHours?: number }) {
+export async function actOnIncident(actor: string, id: string, action: "triage" | "escalate" | "review" | "interim_restrict" | "resolve" | "appeal", input: { severity?: string | undefined; notes: string; restrictHours?: number | undefined }) {
   await requireRole(actor, ["safety_reviewer", "admin"]);
   const { data: inc } = await db().from("safety_incidents").select("*").eq("id", id).single();
   const status = { triage: "triaged", escalate: "escalated", review: "under_review", interim_restrict: "interim_action", resolve: "resolved", appeal: "appealed" }[action];
