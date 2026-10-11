@@ -102,6 +102,23 @@ function evaluateSequence(
   return { ok: reasons.size === 0, reasons: [...reasons], detours, econStart };
 }
 
+/** Distance from a point to the planned route polyline (equirectangular approx; fine at city scale). */
+export function corridorDistanceM(route: LatLng[], p: LatLng): number {
+  if (route.length === 1) return haversineM(route[0]!, p);
+  const k = Math.cos((p.lat * Math.PI) / 180) * 111320;
+  const xy = (q: LatLng) => [(q.lng - p.lng) * k, (q.lat - p.lat) * 110540] as const;
+  let best = Infinity;
+  for (let i = 1; i < route.length; i++) {
+    const [ax, ay] = xy(route[i - 1]!);
+    const [bx, by] = xy(route[i]!);
+    const dx = bx - ax, dy = by - ay;
+    const len = dx * dx + dy * dy;
+    const t = len ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len)) : 0;
+    best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
+  }
+  return best;
+}
+
 export function findMatches(
   req: MatchRequest,
   candidates: TripCandidate[],
@@ -119,7 +136,7 @@ export function findMatches(
     if (req.count > trip.capacity || (seatsUsedMax + req.count > trip.capacity && trip.stops.length === 0)) pre.push("CAPACITY_EXCEEDED");
     if (trip.departAt < req.windowStart - 15 * 60000 || trip.departAt > req.windowEnd) pre.push("TIME_WINDOW_MISMATCH");
     const routePts = [trip.driverLocation, ...trip.stops.map((s) => s.point)];
-    const nearest = Math.min(...routePts.map((p) => haversineM(p, req.pickup)));
+    const nearest = corridorDistanceM(routePts, req.pickup);
     if (nearest > cfg.max_pickup_radius_m) pre.push("PICKUP_TOO_FAR");
     if (pre.length) {
       rejections.push({ tripId: trip.tripId, reasons: pre });
