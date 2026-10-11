@@ -98,9 +98,12 @@ describe("matching", () => {
     expect(al[0]!.amount).not.toBe(al[1]!.amount);
   });
   it("incompatible route is rejected (pickup too far)", () => {
-    const r = findMatches(req("howrah", "esplanade"), [seededTrip()], cfg, routing);
+    const far = { lat: 22.45, lng: 88.3 }; // south-west Kolkata, off the corridor
+    const r = findMatches(req("esplanade", "howrah", { pickup: far }), [seededTrip()], cfg, routing);
     expect(r.options).toHaveLength(0);
     expect(r.rejections[0]!.reasons).toContain("PICKUP_TOO_FAR");
+    // and an against-the-corridor trip is rejected on economics/detour, never forced
+    expect(findMatches(req("howrah", "esplanade"), [seededTrip()], cfg, routing).options).toHaveLength(0);
   });
   it("detour limit is enforced for existing passengers", () => {
     const t = seededTrip();
