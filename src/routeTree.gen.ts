@@ -10,6 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedRideRouteImport } from './routes/_authenticated/ride'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
+import { Route as AuthenticatedTripsIndexRouteImport } from './routes/_authenticated/trips.index'
+import { Route as AuthenticatedTripsBookingIdRouteImport } from './routes/_authenticated/trips.$bookingId'
 import { Route as ApiPublicPaymentsSandboxWebhookRouteImport } from './routes/api/public/payments/sandbox-webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -17,6 +24,41 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRideRoute = AuthenticatedRideRouteImport.update({
+  id: '/ride',
+  path: '/ride',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTripsIndexRoute = AuthenticatedTripsIndexRouteImport.update({
+  id: '/trips/',
+  path: '/trips/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTripsBookingIdRoute =
+  AuthenticatedTripsBookingIdRouteImport.update({
+    id: '/trips/$bookingId',
+    path: '/trips/$bookingId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicPaymentsSandboxWebhookRoute =
   ApiPublicPaymentsSandboxWebhookRouteImport.update({
     id: '/api/public/payments/sandbox-webhook',
@@ -26,27 +68,75 @@ const ApiPublicPaymentsSandboxWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/ride': typeof AuthenticatedRideRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/trips/$bookingId': typeof AuthenticatedTripsBookingIdRoute
+  '/trips/': typeof AuthenticatedTripsIndexRoute
   '/api/public/payments/sandbox-webhook': typeof ApiPublicPaymentsSandboxWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/ride': typeof AuthenticatedRideRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/trips/$bookingId': typeof AuthenticatedTripsBookingIdRoute
+  '/trips': typeof AuthenticatedTripsIndexRoute
   '/api/public/payments/sandbox-webhook': typeof ApiPublicPaymentsSandboxWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/ride': typeof AuthenticatedRideRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/_authenticated/trips/$bookingId': typeof AuthenticatedTripsBookingIdRoute
+  '/_authenticated/trips/': typeof AuthenticatedTripsIndexRoute
   '/api/public/payments/sandbox-webhook': typeof ApiPublicPaymentsSandboxWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/payments/sandbox-webhook'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/account'
+    | '/ride'
+    | '/share/$token'
+    | '/trips/$bookingId'
+    | '/trips/'
+    | '/api/public/payments/sandbox-webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/payments/sandbox-webhook'
-  id: '__root__' | '/' | '/api/public/payments/sandbox-webhook'
+  to:
+    | '/'
+    | '/auth'
+    | '/account'
+    | '/ride'
+    | '/share/$token'
+    | '/trips/$bookingId'
+    | '/trips'
+    | '/api/public/payments/sandbox-webhook'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/account'
+    | '/_authenticated/ride'
+    | '/share/$token'
+    | '/_authenticated/trips/$bookingId'
+    | '/_authenticated/trips/'
+    | '/api/public/payments/sandbox-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ShareTokenRoute: typeof ShareTokenRoute
   ApiPublicPaymentsSandboxWebhookRoute: typeof ApiPublicPaymentsSandboxWebhookRoute
 }
 
@@ -59,6 +149,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ride': {
+      id: '/_authenticated/ride'
+      path: '/ride'
+      fullPath: '/ride'
+      preLoaderRoute: typeof AuthenticatedRideRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/trips/': {
+      id: '/_authenticated/trips/'
+      path: '/trips'
+      fullPath: '/trips/'
+      preLoaderRoute: typeof AuthenticatedTripsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/trips/$bookingId': {
+      id: '/_authenticated/trips/$bookingId'
+      path: '/trips/$bookingId'
+      fullPath: '/trips/$bookingId'
+      preLoaderRoute: typeof AuthenticatedTripsBookingIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/payments/sandbox-webhook': {
       id: '/api/public/payments/sandbox-webhook'
       path: '/api/public/payments/sandbox-webhook'
@@ -69,8 +208,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedRideRoute: typeof AuthenticatedRideRoute
+  AuthenticatedTripsBookingIdRoute: typeof AuthenticatedTripsBookingIdRoute
+  AuthenticatedTripsIndexRoute: typeof AuthenticatedTripsIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedRideRoute: AuthenticatedRideRoute,
+  AuthenticatedTripsBookingIdRoute: AuthenticatedTripsBookingIdRoute,
+  AuthenticatedTripsIndexRoute: AuthenticatedTripsIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ShareTokenRoute: ShareTokenRoute,
   ApiPublicPaymentsSandboxWebhookRoute: ApiPublicPaymentsSandboxWebhookRoute,
 }
 export const routeTree = rootRouteImport
