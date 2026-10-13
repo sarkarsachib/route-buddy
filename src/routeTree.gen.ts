@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedDriverRouteImport } from './routes/_authenticated/driver'
+import { Route as AuthenticatedOpsRouteImport } from './routes/_authenticated/ops'
 import { Route as AuthenticatedRideRouteImport } from './routes/_authenticated/ride'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as AuthenticatedTripsIndexRouteImport } from './routes/_authenticated/trips.index'
@@ -36,6 +38,16 @@ const AuthRoute = AuthRouteImport.update({
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDriverRoute = AuthenticatedDriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOpsRoute = AuthenticatedOpsRouteImport.update({
+  id: '/ops',
+  path: '/ops',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRideRoute = AuthenticatedRideRouteImport.update({
@@ -70,6 +82,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/driver': typeof AuthenticatedDriverRoute
+  '/ops': typeof AuthenticatedOpsRoute
   '/ride': typeof AuthenticatedRideRoute
   '/share/$token': typeof ShareTokenRoute
   '/trips/$bookingId': typeof AuthenticatedTripsBookingIdRoute
@@ -80,6 +94,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/driver': typeof AuthenticatedDriverRoute
+  '/ops': typeof AuthenticatedOpsRoute
   '/ride': typeof AuthenticatedRideRoute
   '/share/$token': typeof ShareTokenRoute
   '/trips/$bookingId': typeof AuthenticatedTripsBookingIdRoute
@@ -92,6 +108,8 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/driver': typeof AuthenticatedDriverRoute
+  '/_authenticated/ops': typeof AuthenticatedOpsRoute
   '/_authenticated/ride': typeof AuthenticatedRideRoute
   '/share/$token': typeof ShareTokenRoute
   '/_authenticated/trips/$bookingId': typeof AuthenticatedTripsBookingIdRoute
@@ -104,6 +122,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/account'
+    | '/driver'
+    | '/ops'
     | '/ride'
     | '/share/$token'
     | '/trips/$bookingId'
@@ -114,6 +134,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/account'
+    | '/driver'
+    | '/ops'
     | '/ride'
     | '/share/$token'
     | '/trips/$bookingId'
@@ -125,6 +147,8 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/account'
+    | '/_authenticated/driver'
+    | '/_authenticated/ops'
     | '/_authenticated/ride'
     | '/share/$token'
     | '/_authenticated/trips/$bookingId'
@@ -170,6 +194,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/driver': {
+      id: '/_authenticated/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof AuthenticatedDriverRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ops': {
+      id: '/_authenticated/ops'
+      path: '/ops'
+      fullPath: '/ops'
+      preLoaderRoute: typeof AuthenticatedOpsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ride': {
       id: '/_authenticated/ride'
       path: '/ride'
@@ -210,6 +248,8 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedDriverRoute: typeof AuthenticatedDriverRoute
+  AuthenticatedOpsRoute: typeof AuthenticatedOpsRoute
   AuthenticatedRideRoute: typeof AuthenticatedRideRoute
   AuthenticatedTripsBookingIdRoute: typeof AuthenticatedTripsBookingIdRoute
   AuthenticatedTripsIndexRoute: typeof AuthenticatedTripsIndexRoute
@@ -217,6 +257,8 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedDriverRoute: AuthenticatedDriverRoute,
+  AuthenticatedOpsRoute: AuthenticatedOpsRoute,
   AuthenticatedRideRoute: AuthenticatedRideRoute,
   AuthenticatedTripsBookingIdRoute: AuthenticatedTripsBookingIdRoute,
   AuthenticatedTripsIndexRoute: AuthenticatedTripsIndexRoute,
