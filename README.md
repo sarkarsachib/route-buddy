@@ -1,29 +1,7 @@
-# Welcome to your Lovable project
+# Tandem (codename) — shared mobility marketplace MVP for India
+Responsive web/PWA with passenger, driver and operations interfaces, server-authoritative pricing/matching, append-only financial ledgers and RLS. **Demo mode**: simulated routing, sandbox payments, seeded demo drivers. Not a production transport service.
 
-This project was built with [Lovable](https://lovable.dev).
+Try it: sign up → Book (Barasat → Sealdah, Share & Save) → your ride joins the seeded demo trip. In **Account**, grant yourself `ops_agent` (demo only) → **Operations → Drivers → Simulate** the demo driver to accept and progress the trip.
 
-## Build with Lovable
-
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+Docs: see `docs/` (PRODUCT_SPEC, ARCHITECTURE, API, DATABASE, PRICING, MATCHING_ALGORITHM, SECURITY, THREAT_MODEL, OPEN_DECISIONS, TEST_PLAN, DEPLOYMENT).
+Tests: `bunx vitest run`.
